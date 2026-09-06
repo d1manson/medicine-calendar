@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Medication Chart</title>
+<style>
+  @page { size: A4 portrait; margin: 6mm; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    color: #111;
+    background: #eee;
+  }
+
+  /* Screen-only controls */
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: #222;
+    color: white;
+  }
+  .controls button {
+    font-size: 18px;
+    line-height: 1;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+  .controls input {
+    font: inherit;
+    padding: 6px 8px;
+    width: 150px;
+  }
+  .month-label {
+    min-width: 220px;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .page {
+    width: 194mm;
+    height: 281mm;
+    margin: 10px auto;
+    padding: 8mm 6mm; 
+    background: white;
+    overflow: hidden;
+  }
+
+  .month-block {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 3.5mm;
+  }
+  .month-block:last-child {
+    margin-bottom: 0;
+  }
+
+  .year-divider {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 1mm 0 1.5mm 22px;
+    color: #444;
+    font-size: 7pt;
+    font-weight: bold;
+  }
+  .year-divider::before,
+  .year-divider::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid #999;
+  }
+
+  /* Rotated Title Layout */
+  .title-side {
+    width: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .title-side h2 {
+    margin: 0;
+    font-size: 8.5pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    transform: rotate(-90deg);
+  }
+
+  .calendar {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+    font-size: 7.5pt;
+  }
+  .calendar th {
+    height: 4.5mm;
+    font-weight: bold;
+    border-bottom: 1px solid #111;
+    padding: 0;
+    font-size: 7pt;
+  }
+  .calendar td {
+    border: 1px solid #ddd;
+    vertical-align: top;
+    padding: 0.8mm 1mm;
+    height: 6mm;
+  }
+  .calendar td.empty {
+    background: #fafafa;
+  }
+  .day {
+    vertical-align: middle;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .num {
+    font-size: 12px;
+    margin-right: 4px;
+  }
+  .mark {
+    font-size: 12px;
+    color: #444;
+  }
+
+  @media print {
+    body { background: white; }
+    .controls { display: none !important; }
+    .page {
+      width: 100%;
+      height: 281mm;
+      margin: 0;
+      padding: 0;
+    }
+    .month-block { page-break-inside: avoid; }
+    .calendar td { height: 6.2mm; }
+  }
+</style>
+</head>
+<body>
+<div class="controls">
+  <button id="prev" aria-label="Previous month">←</button>
+  <div id="monthLabel" class="month-label"></div>
+  <button id="next" aria-label="Next month">→</button>
+  <input id="repeatInput" value="[am] [pm]" aria-label="Repeating text">
+</div>
+
+<main class="page" id="container">
+  <!-- Months will render here -->
+</main>
+
+<script>
+  const now = new Date();
+  let baseMonth = new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= 15 ? 1 : 0), 1);
+
+  const monthNameFormatter = new Intl.DateTimeFormat('en-GB', {
+    month: 'long',
+  });
+
+  const label = document.getElementById('monthLabel');
+  const container = document.getElementById('container');
+  const repeatInput = document.getElementById('repeatInput');
+
+  function render() {
+    container.innerHTML = '';
+
+    const startMonthText = new Intl.DateTimeFormat('en-GB', {
+      month: 'long',
+      year: 'numeric'
+    }).format(baseMonth)
+    label.textContent = `starting ${startMonthText}`;
+
+    for (let i = 0; ; i++) {
+      const currentMonth = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + i, 1);
+      const yearDivider = i > 0 && currentMonth.getFullYear() !==
+        new Date(baseMonth.getFullYear(), baseMonth.getMonth() + i - 1, 1).getFullYear()
+        ? renderYearDivider(currentMonth.getFullYear())
+        : null;
+      const monthBlock = renderSingleMonth(currentMonth);
+
+      if (container.scrollHeight > container.clientHeight) {
+        monthBlock.remove();
+        yearDivider?.remove();
+        break;
+      }
+    }
+  }
+
+  function renderYearDivider(year) {
+    const divider = document.createElement('div');
+    divider.className = 'year-divider';
+    divider.textContent = year;
+    container.appendChild(divider);
+    return divider;
+  }
+
+  function renderSingleMonth(date) {
+    const monthBlock = document.createElement('div');
+    monthBlock.className = 'month-block';
+
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'title-side';
+    titleDiv.innerHTML = `<h2>${monthNameFormatter.format(date)}</h2>`;
+    monthBlock.appendChild(titleDiv);
+
+    const table = document.createElement('table');
+    table.className = 'calendar';
+    table.setAttribute('aria-label', `Medication chart for ${monthNameFormatter.format(date)}`);
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th>
+          <th>Fri</th><th>Sat</th><th>Sun</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+    const year = date.getFullYear();
+    const m = date.getMonth();
+    const days = new Date(year, m + 1, 0).getDate();
+
+    // Convert JS Sunday=0 to Monday=0
+    const firstDay = (new Date(year, m, 1).getDay() + 6) % 7;
+    const weeks = Math.ceil((firstDay + days) / 7);
+
+    let day = 1;
+    for (let w = 0; w < weeks; w++) {
+      const tr = document.createElement('tr');
+
+      for (let d = 0; d < 7; d++) {
+        const td = document.createElement('td');
+
+        if ((w === 0 && d < firstDay) || day > days) {
+          td.className = 'empty';
+        } else {
+          td.innerHTML =
+            '<div class="day">' +
+              '<span class="num">' + day + '</span>' +
+              '<span class="mark">' + escapeHtml(repeatInput.value) + '</span>' +
+            '</div>';
+          day++;
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+
+    monthBlock.appendChild(table);
+    container.appendChild(monthBlock);
+    return monthBlock;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[c]));
+  }
+
+  document.getElementById('prev').onclick = () => {
+    baseMonth = new Date(baseMonth.getFullYear(), baseMonth.getMonth() - 1, 1);
+    render();
+  };
+  document.getElementById('next').onclick = () => {
+    baseMonth = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + 1, 1);
+    render();
+  };
+  repeatInput.addEventListener('input', render);
+
+  render();
+</script>
+</body>
+</html>
