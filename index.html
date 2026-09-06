@@ -63,6 +63,8 @@
   }
 
   .page {
+    display: flex;
+    flex-direction: column;
     width: var(--page-width);
     height: var(--page-height);
     margin: 10px auto;
@@ -70,10 +72,20 @@
     background: white;
     overflow: hidden;
   }
+  .page-footer {
+    flex-shrink: 0;
+    margin-top: auto;
+    text-align: center;
+    font-size: 7pt;
+  }
+  .page-footer a {
+    color: #aaa;
+  }
 
   .month-block {
     display: flex;
     align-items: stretch;
+    flex-shrink: 0;
     margin-bottom: 3.5mm;
   }
   .month-block:last-child {
@@ -84,6 +96,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-shrink: 0;
     margin: 1mm 0 1.5mm 22px;
     color: #444;
     font-size: 7pt;
@@ -181,6 +194,9 @@
 
 <main class="page" id="container">
   <!-- Months will render here -->
+  <footer class="page-footer">
+    <a href="https://d1manson.github.io/medicine-calendar/">d1manson.github.io/medicine-calendar</a>
+  </footer>
 </main>
 
 <script>
@@ -212,7 +228,7 @@
   }
 
   function render() {
-    container.innerHTML = '';
+    container.querySelectorAll('.month-block, .year-divider').forEach(element => element.remove());
 
     const startMonthText = new Intl.DateTimeFormat('en-GB', {
       month: 'long',
@@ -240,7 +256,7 @@
     const divider = document.createElement('div');
     divider.className = 'year-divider';
     divider.textContent = year;
-    container.appendChild(divider);
+    container.insertBefore(divider, container.querySelector('.page-footer'));
     return divider;
   }
 
@@ -298,7 +314,7 @@
     }
 
     monthBlock.appendChild(table);
-    container.appendChild(monthBlock);
+    container.insertBefore(monthBlock, container.querySelector('.page-footer'));
     return monthBlock;
   }
 
