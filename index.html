@@ -28,15 +28,33 @@
     color: white;
   }
   .controls button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: 18px;
     line-height: 1;
     padding: 4px 10px;
+    height: 34px;
     cursor: pointer;
   }
   .controls input {
     font: inherit;
     padding: 6px 8px;
     width: 150px;
+    height: 34px;
+  }
+  .controls select {
+    font: inherit;
+    padding: 6px 8px;
+    height: 34px;
+  }
+  .controls label {
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+  }
+  .controls label[for="pageSize"] {
+    margin-left: auto;
   }
   .month-label {
     min-width: 220px;
@@ -45,8 +63,8 @@
   }
 
   .page {
-    width: 194mm;
-    height: 281mm;
+    width: var(--page-width);
+    height: var(--page-height);
     margin: 10px auto;
     padding: 8mm 6mm; 
     background: white;
@@ -136,8 +154,8 @@
     body { background: white; }
     .controls { display: none !important; }
     .page {
-      width: 100%;
-      height: 281mm;
+      width: var(--page-width);
+      height: var(--page-height);
       margin: 0;
       padding: 0;
     }
@@ -152,6 +170,13 @@
   <div id="monthLabel" class="month-label"></div>
   <button id="next" aria-label="Next month">→</button>
   <input id="repeatInput" value="[am] [pm]" aria-label="Repeating text">
+  <label for="pageSize">Page size</label>
+  <select id="pageSize" aria-label="Page size">
+    <option value="a4" selected>A4</option>
+    <option value="letter">Letter</option>
+    <option value="legal">Legal</option>
+  </select>
+  <button id="print" type="button" aria-label="Print medication chart">🖨 Print</button>
 </div>
 
 <main class="page" id="container">
@@ -159,6 +184,12 @@
 </main>
 
 <script>
+  const pageSizes = {
+    a4: { width: '194mm', height: '281mm', printSize: 'A4' },
+    letter: { width: '204mm', height: '267mm', printSize: 'Letter' },
+    legal: { width: '204mm', height: '344mm', printSize: 'Legal' },
+  };
+
   const now = new Date();
   let baseMonth = new Date(now.getFullYear(), now.getMonth() + (now.getDate() >= 15 ? 1 : 0), 1);
 
@@ -169,6 +200,16 @@
   const label = document.getElementById('monthLabel');
   const container = document.getElementById('container');
   const repeatInput = document.getElementById('repeatInput');
+  const pageSize = document.getElementById('pageSize');
+  const pageStyle = document.createElement('style');
+  document.head.appendChild(pageStyle);
+
+  function updatePageSize() {
+    const size = pageSizes[pageSize.value];
+    document.documentElement.style.setProperty('--page-width', size.width);
+    document.documentElement.style.setProperty('--page-height', size.height);
+    pageStyle.textContent = `@page { size: ${size.printSize} portrait; }`;
+  }
 
   function render() {
     container.innerHTML = '';
@@ -276,7 +317,13 @@
     render();
   };
   repeatInput.addEventListener('input', render);
+  document.getElementById('print').addEventListener('click', () => window.print());
+  pageSize.addEventListener('change', () => {
+    updatePageSize();
+    render();
+  });
 
+  updatePageSize();
   render();
 </script>
 </body>
