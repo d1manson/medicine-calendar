@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Medication Chart</title>
 <style>
-  @page { size: A4 portrait; margin: 6mm; }
+  @page { size: A4 portrait; margin: 12mm 14mm 8mm; }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -79,7 +79,7 @@
     width: var(--page-width);
     height: var(--page-height);
     margin: 10px auto;
-    padding: 8mm 6mm; 
+    padding: 12mm 10mm 8mm;
     background: white;
     box-shadow: 0 2px 12px rgb(0 0 0 / 18%);
     overflow: hidden;
@@ -254,27 +254,40 @@
     }).format(baseMonth)
     label.textContent = `starting ${startMonthText}`;
 
+    let previousMonth = null;
+
     for (let i = 0; ; i++) {
       const currentMonth = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + i, 1);
-      const yearDivider = i > 0 && currentMonth.getFullYear() !==
-        new Date(baseMonth.getFullYear(), baseMonth.getMonth() + i - 1, 1).getFullYear()
-        ? renderYearDivider(currentMonth.getFullYear())
-        : null;
       const monthBlock = renderSingleMonth(currentMonth);
+
+      let yearDivider = null;
+      if (i === 0 && currentMonth.getMonth() === 0) {
+        yearDivider = renderYearDivider(currentMonth.getFullYear(), monthBlock);
+      } else if (i > 0 && currentMonth.getFullYear() !== previousMonth.getFullYear()) {
+        yearDivider = renderYearDivider(currentMonth.getFullYear(), monthBlock);
+      }
 
       if (container.scrollHeight > container.clientHeight) {
         monthBlock.remove();
         yearDivider?.remove();
         break;
       }
+
+      previousMonth = currentMonth;
     }
   }
 
-  function renderYearDivider(year) {
+  function renderYearDivider(year, beforeElement = null) {
     const divider = document.createElement('div');
     divider.className = 'year-divider';
     divider.textContent = year;
-    container.insertBefore(divider, container.querySelector('.page-footer'));
+
+    if (beforeElement) {
+      container.insertBefore(divider, beforeElement);
+    } else {
+      container.insertBefore(divider, container.querySelector('.page-footer'));
+    }
+
     return divider;
   }
 
